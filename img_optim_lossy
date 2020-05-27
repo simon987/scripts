@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+find "$1" -iname "*.jpeg" -exec jpegoptim -m85 {} \;
+find "$1" -iname "*.jpg" -exec jpegoptim -m85 {} \;

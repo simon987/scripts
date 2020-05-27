@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+find "$1" -iname "*.jpeg" -exec jpegoptim {} \;
+find "$1" -iname "*.jpg" -exec jpegoptim {} \;
+
+# TODO optipng

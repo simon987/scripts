@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+XZ_OPT=-9 
+
+tar -cJf "$1".tar.xz "$1"

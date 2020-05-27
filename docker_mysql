@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+docker run -d --name tmp_mysql1  \
+		-e MYSQL_ROOT_PASSWORD="rootpw" \
+		-e MYSQL_ROOT_HOST="%" \
+	   	mysql/mysql-server:5.7
+
+sleep 30
+
+containerip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tmp_mysql1)
+
+echo "Login with 'mysql -h ${containerip} -uroot -prootpw'"
+
+read _
+docker rm -f tmp_mysql1

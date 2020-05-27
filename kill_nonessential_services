@@ -1,0 +1,14 @@
+#!/bin/bash
+
+systemctl stop docker
+systemctl stop mongod
+systemctl stop mongodb
+systemctl stop redis-server
+systemctl stop redis
+systemctl stop postgresql
+systemctl stop nginx
+systemctl stop vsftpd
+killall nextcloud
+killall cmus
+
+

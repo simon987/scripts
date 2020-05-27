@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+XZ_OPT=-9 
+
+F=$(basename "$1")
+
+mkdir /tmp/"$F"
+unzip "$1" -d /tmp/"$1"
+tar -cJf "$1".tar.xz /tmp/"$F"
