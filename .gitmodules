@@ -1,3 +1,3 @@
 [submodule "scripts-private"]
 	path = scripts-private
-	url = ssh://git@raw.simon987.net:222/simon987/scripts-private.git
+	url = https://git.simon987.net/simon987/scripts-private
