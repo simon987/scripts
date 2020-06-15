@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import os
+from shutil import copyfile
+import pathlib
+from multiprocessing import Pool, Value
+
+SRC = "/mnt/merger/audio/music"
+DST = "/mnt/merger/audio/music_opus"
+
+to_convert = []
+counter = Value("d")
+
+
+def convert(path):
+    global counter
+    destination = DST + path[len(SRC):]
+    destination = os.path.splitext(destination)[0] + ".opus"
+
+    pathlib.Path(os.path.split(destination)[0]).mkdir(parents=True, exist_ok=True)
+
+    if not os.path.exists(destination):
+        if path.endswith("flac"):
+            os.system("opusenc \"" + path + "\" --bitrate 80  \"" + destination + "\" --quiet")
+        else:
+            os.system("ffmpeg -i \"" + path + "\" -f flac -loglevel panic - | opusenc - \"" + destination + "\" --quiet")
+        print("[%.2f%%] - " % (counter.value / len(to_convert) * 100) + destination)
+    counter.value += 1
+
+
+def recursive_convert(path):
+
+    for item in os.listdir(path):
+        full_path = path + os.sep + item
+        if os.path.isdir(full_path):
+            recursive_convert(full_path)
+        else:
+            if os.path.splitext(item)[1] in [".mp3", ".flac", ".m4a", ".ape"]:
+                to_convert.append(full_path)
+
+
+recursive_convert(SRC)
+print("Converting " + str(len(to_convert)) + " files...")
+
+pool = Pool(processes=4)
+pool.map(convert, to_convert)

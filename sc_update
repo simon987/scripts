@@ -1,5 +1,5 @@
-sudo pacman -S archlinux-keyring
-sudo pacman-key --init
-sudo pacman-key --populate archlinux
-sudo pacman-key --refresh-keys
-sudo pacman -Syyu
+sudo pacman -S archlinux-keyring --noconfirm
+sudo pacman-key --init --noconfirm
+sudo pacman-key --populate archlinux --noconfirm
+sudo pacman-key --refresh-keys --noconfirm
+sudo pacman -Syyu --noconfirm

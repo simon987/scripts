@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-#!/usr/bin/env bash
-
 source $(dirname $0)/lib/argparse || exit 1
 argparse "$@" <<EOF || exit 1
+parser.add_argument('infile')
 parser.add_argument('-v', '--video-bitrate', type=int,
                     help='Video bitrate in kbps')
 
@@ -13,9 +12,9 @@ EOF
 
 CRF=30
 
-ffmpeg -i "$1" -y -b:v $VIDEO_BITRATE \
+ffmpeg -i "${INFILE}" -y -b:v "${VIDEO_BITRATE}k" \
   -quality good -crf $CRF -c:v libvpx-vp9 -an \
   -pass 1 -speed 4 -f webm /dev/null &&\
-ffmpeg -i "$1" -y -b:v $VIDEO_BITRATE -auto-alt-ref 1 -lag-in-frames 25 \
-  -quality good -crf $CRF -c:v libvpx-vp9 -c:a libopus -b:a $AUDIO_BITRATE \
-  -pass 2 -speed 1 "$1.webm"
+ffmpeg -i "${INFILE}" -y -b:v "${VIDEO_BITRATE}k" -auto-alt-ref 1 -lag-in-frames 25 \
+  -quality good -crf $CRF -c:v libvpx-vp9 -c:a libopus -b:a ${AUDIO_BITRATE}k \
+  -pass 2 -speed 1 "${INFILE}.webm"

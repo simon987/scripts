@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+width=$(ffprobe "${INFILE}" -show_streams -print_format json 2>/dev/null | jq ".streams[] | select(.width != null) | .width" | head -n 1)
+height=$(ffprobe "${INFILE}" -show_streams -print_format json 2>/dev/null | jq ".streams[] | select(.height != null) | .height" | head -n 1)
+fps=$(($(ffprobe "${INFILE}" -show_streams -print_format json 2>/dev/null | jq -r ".streams[] | select(.r_frame_rate != null) | .r_frame_rate" | head -n 1)))
+
+if [[ ${width} -lt ${height} ]]; then
+    tmp=${width}
+    width=${height}
+    height=${tmp}
+fi
+
+if [[ ${width} -le 320 ]]; then
+    MIN_VBR=75
+	CRF=36
+	TRG_VRB=150
+    MAX_VBR=218
+    TILE_COLS=0
+    THREADS=2
+elif [[ $width -le 640 ]]; then
+    MIN_VBR=375
+	CRF=33
+	TRG_VBR=750
+    MAX_VBR=1088
+    TILE_COLS=1
+    THREADS=4
+elif [[ $width -le 1280 ]]; then
+    MIN_VBR=512
+	CRF=32
+	TRG_VBR=1024
+    MAX_VBR=1485
+    TILE_COLS=2
+    THREADS=8
+elif [[ $width -le 1920 ]]; then
+    if [[ $fps -le 30 ]]; then
+        MIN_VBR=900
+		TRG_VBR=1800
+        MAX_VBR=2610
+    else
+        MIN_VBR=1500
+		TRG_VBR=3000
+        MAX_VBR=4350
+    fi
+	CRF=31
+    TILE_COLS=2
+    THREADS=8
+elif [[ $width -le 2560 ]]; then
+    if [[ $fps -le 35 ]]; then
+        MIN_VBR=3000
+		TRG_VBR=6000
+        MAX_VBR=8700
+    else
+        MIN_VBR=4500
+		TRG_VBR=9000
+        MAX_VBR=13050
+    fi
+	CRF=24
+    TILE_COLS=3
+    THREADS=16
+else
+    if [[ $fps -le 35 ]]; then
+        MIN_VBR=6000
+		TRG_VBR=12000
+        MAX_VBR=17400
+    else
+        MIN_VBR=9000
+		TRG_VBR=18000
+        MAX_VBR=26100
+    fi
+    TILE_COLS=3
+    THREADS=16
+	CRF=15
+fi
+
+ffmpeg -i "${INFILE}" -y -b:v "${TRG_VBR}k" -minrate "${MIN_VBR}k" -maxrate "${MAX_VBR}k" -crf $CRF \
+  -tile-columns ${TILE_COLS} -threads ${THREADS} \
+  -quality good -c:v libvpx-vp9 -an \
+  -pass 1 -speed 4 -f webm /dev/null && \
+ffmpeg -i "${INFILE}" -y -b:v "${TRG_VBR}k" -minrate "${MIN_VBR}k" -maxrate "${MAX_VBR}k" -crf $CRF\
+  -tile-columns ${TILE_COLS} -threads ${THREADS} \
+  -quality good -c:v libvpx-vp9 -c:a libopus -b:a 32k \
+  -pass 2 -speed 1 "${INFILE}.webm"
+
