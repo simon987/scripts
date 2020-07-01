@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+systemd-resolve --interface lxdbr0 --set-dns 10.18.36.1 --set-domain lxd
+#systemd-resolve --interface lxdbr0 --revert
+
