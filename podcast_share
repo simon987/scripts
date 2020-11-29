@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+DATE_RANGE="45 days ago"
+IN="/home/rutorrent/main/staging/rss"
+OUT="/home/rutorrent/main/audio/shared"
+TARGET_DATE=$(date --date "${DATE_RANGE}" +%s)
+
+
+
+rm /tmp/list.txt 2>/dev/null
+
+find "${IN}" -iname "*.mp3" -print0 | while read -d $'\0' file
+do
+        fileName=$(basename "${file}")
+        fileDate=$(echo $fileName | cut -c1-10)
+        fileTime=$(date --date "${fileDate}" +%s)
+        relPath=$(realpath --relative-to="${IN}" "${file}")
+
+        if [[ $TARGET_DATE -le $fileTime ]]; then
+                echo $relPath >> /tmp/list.txt
+
+        else
+                rm "${OUT}/$relPath" 2>/dev/null
+        fi
+done
+
+
+rsync -aP --files-from=/tmp/list.txt "${IN}" "${OUT}"
