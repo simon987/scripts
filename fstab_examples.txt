@@ -1,0 +1,3 @@
+
+# virtio Unraid mount with mmap support
+staging /home/rutorrent/main 9p trans=virtio,version=9p2000.L,_netdev,rw,cache=mmap 0 0

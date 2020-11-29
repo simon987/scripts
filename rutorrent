@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+# For ubuntu 20.04
+
+currentWorkdir=$(pwd)
+
+PASSWORD="abcdefg"
+
+#apt install -y nginx php7.4-fpm nano apache2-utils subversion git supervisor tmux build-essential automake libtool libcppunit-dev libcurl4 libsigc++-2.0-dev curl unrar unzip libncurses5-dev libfuse-dev libcurl4-openssl-dev libxml++2.6-dev php7.4-cli php7.4-mbstring libssl-dev mediainfo sox ffmpeg python python-pip
+
+curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
+python get-pip.py
+python -m pip install cloudscraper
+#
+#
+## XMLRPC-C
+#git clone https://github.com/mirror/xmlrpc-c.git
+#cd xmlrpc-c/stable/
+#./configure --disable-cplusplus
+#make -j2
+#make install
+#
+## libtorrent
+#git clone -b feature-bind https://github.com/rakshasa/libtorrent.git
+#cd libtorrent
+#./autogen.sh
+#./configure --disable-instrumentation
+#make -j2
+#make install
+#
+## rTorrent
+#git clone -b feature-bind https://github.com/rakshasa/rtorrent.git
+#cd rtorrent
+#./autogen.sh
+#./configure --with-xmlrpc-c
+#make -j2
+#make install
+#ldconfig
+
+useradd rutorrent &>/dev/null
+mkdir -p /home/rutorrent
+usermod -a -G rutorrent www-data
+usermod -a -G www-data rutorrent
+
+
+cat > /home/rutorrent/.rtorrent.rc <<EOF
+# ----------------------------------------------------------------------
+# BitTorrent
+# ----------------------------------------------------------------------
+
+throttle.global_down.max_rate.set = 0
+throttle.global_up.max_rate.set   = 0
+throttle.max_peers.normal.set     = 200
+throttle.max_peers.seed.set       = -1
+throttle.max_uploads.global.set   = 200
+throttle.min_peers.normal.set     = 1
+throttle.min_peers.seed.set       = -1
+
+# ----------------------------------------------------------------------
+# Directories
+# ----------------------------------------------------------------------
+
+directory                        = /home/rutorrent/main/staging/downloads/
+session                          = /home/rutorrent/.session
+schedule2                         = watch_directory,5,5,load.start=/home/rutorrent/main/staging/_watch/*.torrent
+schedule2                         = watch_directory2,5,5,load.normal=/home/rutorrent/main/staging/_watch_paused/*.torrent
+encoding.add                     = UTF-8
+
+# ----------------------------------------------------------------------
+# Network
+# ----------------------------------------------------------------------
+
+network.port_range.set           = 10001-11000
+network.scgi.open_port           = 127.0.0.1:5000
+network.port_random.set          = yes
+network.tos.set                  = throughput
+protocol.pex.set                 = no
+trackers.use_udp.set             = yes
+
+encryption                       = allow_incoming,try_outgoing,enable_retry
+
+# ----------------------------------------------------------------------
+# Hash
+# ----------------------------------------------------------------------
+
+pieces.hash.on_completion.set    = no
+check_hash                       = no
+
+EOF
+
+mkdir -p /home/rutorrent/.session
+chown -R rutorrent:rutorrent /home/rutorrent/
+chown -R rutorrent:rutorrent /home/rutorrent/.rtorrent.rc
+
+
+# rutorrent
+mkdir -p /var/www
+(
+	cd /var/www
+	rm -rf ruTorrent &>/dev/null
+	git clone https://github.com/Novik/ruTorrent.git
+	chown -R www-data:www-data /var/www
+
+	cd ruTorrent
+	git am < ${currentWorkdir}/0001-Config.patch
+)
+
+# nginx
+
+cat > /etc/nginx/conf.d/rutorrent.conf <<EOF
+server {
+  listen 80;
+  server_name localhost;
+ 
+  root /var/www/ruTorrent;
+  index index.html index.htm index.php;
+ 
+  auth_basic "Restricted";
+  auth_basic_user_file /etc/nginx/.htpasswd;
+ 
+  location / {
+    try_files \$uri \$uri/ =404;
+  }
+ 
+  location /RPC2 {
+    include /etc/nginx/scgi_params;
+    scgi_pass 127.0.0.1:5000;
+  }
+ 
+  location ~ .php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME \$document_root/\$fastcgi_script_name;
+  }
+}
+EOF
+
+htpasswd -b /etc/nginx/.htpasswd rutorrent $PASSWORD
+rm -f /etc/nginx/sites-enabled/default &>/dev/null
+
+systemctl restart nginx
+systemctl restart php7.4-fpm
