@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+confdir="$(dirname "$0")"
+
+# htpasswd -cb -B -C 10 ./passwords username password
+
+docker run --name squid -d --restart=always \
+  --publish 3128:3128 \
+  --volume "${confdir}/squid.conf:/etc/squid/squid.conf" \
+  --volume "${confdir}/passwords:/etc/squid/passwords" \
+  sameersbn/squid:3.5.27-2
